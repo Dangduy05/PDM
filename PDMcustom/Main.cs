@@ -14,17 +14,51 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
+using PDMcustom.ChildForm;
 
 namespace PDMcustom
 {
     public partial class Main : Form
     {
+        private Form currentChildForm;
+
+
         //Drag Form
         [DllImport("user32.DLL", EntryPoint = "ReleaseCapture")]
         private extern static void ReleaseCapture();
 
         [DllImport("user32.DLL", EntryPoint = "SendMessage")]
         private extern static void SendMessage(System.IntPtr hwnd, int wmsg, int wparam, int lparam);
+
+        System.Windows.Forms.Form f = System.Windows.Forms.Application.OpenForms["Login"];
+
+        private void openChildForm(Form childForm)
+        {
+            if (currentChildForm != null)
+            {
+                currentChildForm.Close();
+                currentChildForm = childForm;
+                childForm.TopLevel = false;
+                childForm.FormBorderStyle = FormBorderStyle.None;
+                childForm.Dock = DockStyle.Fill;
+                panelDesktop.Controls.Add(childForm);
+                panelDesktop.Tag = childForm;
+                childForm.BringToFront();
+                childForm.Show();
+                //lblTitleChildForm.Text = childForm.Text;
+            }
+            else
+            {
+                currentChildForm = childForm;
+                childForm.TopLevel = false;
+                childForm.FormBorderStyle = FormBorderStyle.None;
+                childForm.Dock = DockStyle.Fill;
+                panelDesktop.Controls.Add(childForm);
+                panelDesktop.Tag = childForm;
+                childForm.BringToFront();
+                childForm.Show();
+            }
+        }
         public Main()
         {
             InitializeComponent();
@@ -39,8 +73,25 @@ namespace PDMcustom
 
         private void Main_Load(object sender, EventArgs e)
         {
-
+            btnUser.Text = ((Login)f).tbUsername.Text;
+            if (btnUser.Text.Length >= 20)
+            {
+                btnUser.Font = new Font(btnUser.Font.FontFamily, 10);
+            }
         }
+
+        //private void Main_Load(object sender, EventArgs e)
+        //{
+        //    if (f != null && f.Controls["tbUsername"] != null && btnUser != null)
+        //    {
+        //        btnUser.Text = f.Controls["tbUsername"].Text;
+        //    }
+        //    else
+        //    {
+        //        // Handle the case where one of the objects is null
+        //        MessageBox.Show("One or more controls are not properly initialized.");
+        //    }
+        //}
 
         private void btnMenu_Click(object sender, EventArgs e)
         {
@@ -67,26 +118,15 @@ namespace PDMcustom
 
         private void btnManageDocument_Click(object sender, EventArgs e)
         {
-            if(flpManageDocument.MinimumSize.Height == flpManageDocument.Height)
-            {
-                flpManageDocument.Height = flpManageDocument.MaximumSize.Height;
-            }
-            else
-            {
-                flpManageDocument.Height = flpManageDocument.MinimumSize.Height;
-            }
-        }
-
-        private void btnManageProject_Click(object sender, EventArgs e)
-        {
-            if (flpManageProject.MinimumSize.Height == flpManageProject.Height)
-            {
-                flpManageProject.Height = flpManageProject.MaximumSize.Height;
-            }
-            else
-            {
-                flpManageProject.Height = flpManageProject.MinimumSize.Height;
-            }
+            //if(panelManageDocument.MinimumSize.Height == panelManageDocument.Height)
+            //{
+            //    panelManageDocument.Height = panelManageDocument.MaximumSize.Height;
+            //}
+            //else
+            //{
+            //    panelManageDocument.Height = panelManageDocument.MinimumSize.Height;
+            //}
+            openChildForm(new AddRecord());
         }
 
         private void btnNumberRule_Click(object sender, EventArgs e)
@@ -115,80 +155,69 @@ namespace PDMcustom
         {
 
         }
-        private void Scale(Control s)
-        {
-            s.Location = new Point(384, 64);
-            s.Size = new Size(1559, 1024);
-        }
-
-        private void btnAttach_Click(object sender, EventArgs e)
-        {
-            if (flpAttachment.Visible)
-            {
-                flpAttachment.Visible = false;
-            }
-            else
-            {
-                flpAttachment.Visible = true;
-            }
-        }
+        //private void Scale()
+        //{
+            
+        //    s.Dock = DockStyle.Fill;
+        //}
         
-    void btnLocal_Click(object sender, EventArgs e)
+
+        private void button1_Click(object sender, EventArgs e)
         {
-            //Browse local file
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Document Files|*.docx;*.doc";
-            if (ofd.ShowDialog() == DialogResult.OK)
-            {
-                labelLocal.Text = ofd.FileName;
-            }
+            openChildForm(new Classify());
         }
-        /*
-        private void btnDrive_Click(object sender, EventArgs e)
+
+        private void btnManageProject_Click(object sender, EventArgs e)
         {
-            string[] Scopes = { DriveService.Scope.DriveReadonly };
-            string ApplicationName = "PDMcustom";
+            openChildForm(new AddProject());
+        }
 
-            UserCredential credential;
+        /*
+private void btnDrive_Click(object sender, EventArgs e)
+{
+string[] Scopes = { DriveService.Scope.DriveReadonly };
+string ApplicationName = "PDMcustom";
 
-            using (var stream =
-                new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
-            {
-                string credPath = "token.json";
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    Scopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-            }
+UserCredential credential;
 
-            // Create Drive API service.
-            var service = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = ApplicationName,
-            });
+using (var stream =
+new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
+{
+string credPath = "token.json";
+credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+  GoogleClientSecrets.Load(stream).Secrets,
+  Scopes,
+  "user",
+  CancellationToken.None,
+  new FileDataStore(credPath, true)).Result;
+}
 
-            // Define parameters of request.
-            FilesResource.ListRequest listRequest = service.Files.List();
-            listRequest.PageSize = 10;
-            listRequest.Fields = "nextPageToken, files(id, name)";
+// Create Drive API service.
+var service = new DriveService(new BaseClientService.Initializer()
+{
+HttpClientInitializer = credential,
+ApplicationName = ApplicationName,
+});
 
-            // List files.
-            var request = listRequest.Execute();
-            var files = request.Files;
-            if (files != null && files.Count > 0)
-            {
-                foreach (var file in files)
-                {
-                    Console.WriteLine("{0} ({1})", file.Name, file.Id);
-                }
-            }
-            else
-            {
-                Console.WriteLine("No files found.");
-            }
-        } */
+// Define parameters of request.
+FilesResource.ListRequest listRequest = service.Files.List();
+listRequest.PageSize = 10;
+listRequest.Fields = "nextPageToken, files(id, name)";
+
+// List files.
+var request = listRequest.Execute();
+var files = request.Files;
+if (files != null && files.Count > 0)
+{
+foreach (var file in files)
+{
+  Console.WriteLine("{0} ({1})", file.Name, file.Id);
+}
+}
+else
+{
+Console.WriteLine("No files found.");
+}
+} */
     }
 }

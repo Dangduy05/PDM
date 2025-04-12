@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Google.Apis.Drive.v3.Data;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace PDMcustom
 {
@@ -52,7 +54,7 @@ namespace PDMcustom
         }
         private void version()
         {
-            labelVersion.Text = "Version 0.1";
+            labelVersion.Text = "Version.0";
             labelVersion.ForeColor = Color.Black;
         }
         private void btnClose_Click(object sender, EventArgs e)
@@ -104,8 +106,8 @@ namespace PDMcustom
                 //Properties.Settings.Default.Password = tbPassword.Text;
                 Properties.Settings.Default.Save();
             }
-            if ((tbUsername.Text == "Email" && tbPassword.Text == "●●●●●●●●") 
-                || tbUsername.ForeColor == Color.DarkGray 
+            if ((tbUsername.Text == "Email" && tbPassword.Text == "●●●●●●●●")
+                || tbUsername.ForeColor == Color.DarkGray
                 || tbPassword.ForeColor == Color.DarkGray)
             {
                 labelStatus.Text = "Please enter your email and password";
@@ -115,14 +117,50 @@ namespace PDMcustom
             {
                 labelStatus.Text = "Logging in...";
                 labelStatus.ForeColor = Color.Black;
-                // Add your code here
-                try
+            }
+            try
+            {
+                if (conn != null && conn.State == ConnectionState.Open)
                 {
-                    this.Hide();
-                    Main main = new Main();
-                    main.Show();
+                    SqlCommand cmd = new SqlCommand("userLogin", conn);
+
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@username", tbUsername.Text);
+                    cmd.Parameters.AddWithValue("@password", tbPassword.Text);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string message = reader["Message"].ToString();
+                            if (message == "Login successful")
+                            {
+                                // Login successful
+                                labelStatus.Text = "Login successful! Heading to main window...";
+                                labelStatus.ForeColor = Color.Green;
+                                this.Hide();
+                                Main main = new Main();
+                                main.Show();
+                            }
+                            else
+                            {
+                                // Invalid username or password
+                                labelStatus.Text = "Invalid username or password";
+                                labelStatus.ForeColor = Color.Red;
+                            }
+                        }
+                    }
                 }
-                catch { }
+                else
+                {
+                    labelStatus.Text = "Failed to connect to the server";
+                    labelStatus.ForeColor = Color.Red;
+                }
+            }
+            catch (Exception ex)
+            {
+                labelStatus.Text = "An error occurred: " + ex.Message;
+                labelStatus.ForeColor = Color.Red;
             }
         }
 
@@ -167,6 +205,7 @@ namespace PDMcustom
         {
             labelStatus.Text = "";
             version();
+            connect();
             tbUsername.Text = Properties.Settings.Default.Username;
             //tbPassword.Text = Properties.Settings.Default.Password;
             if (Properties.Settings.Default.Username != "")
